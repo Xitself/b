@@ -1,0 +1,596 @@
+--RELOAD GUI
+if game.CoreGui:FindFirstChild("Purge") then
+	game:GetService("StarterGui"):SetCore("SendNotification", {Title = "System Broken",Text = "GUI Already loaded, rejoin to re-execute",Duration = 5;})
+	return
+end
+local version = 2
+--VARIABLES
+_G.AntiFlingToggled = false
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Light = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
+local httprequest = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+local mouse = plr:GetMouse()
+local ScriptWhitelist = {}
+local ForceWhitelist = {}
+
+
+--FUNCTIONS
+_G.shield = function(id)
+	if not table.find(ForceWhitelist,id) then
+		table.insert(ForceWhitelist, id)
+	end
+end
+
+local function RandomChar()
+	local length = math.random(1,5)
+	local array = {}
+	for i = 1, length do
+		array[i] = string.char(math.random(32, 126))
+	end
+	return table.concat(array)
+end
+
+local function ChangeToggleColor(Button)
+	led = Button.Ticket_Asset
+	if led.ImageColor3 == Color3.fromRGB(255, 0, 0) then
+		led.ImageColor3 = Color3.fromRGB(0, 255, 0)
+	else
+		led.ImageColor3 = Color3.fromRGB(255, 0, 0)
+	end
+end
+
+local function GetPing()
+	return (game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())/1000
+end
+
+local function GetPlayer(UserDisplay)
+	if UserDisplay ~= "" then
+        for i,v in pairs(Players:GetPlayers()) do
+            if v.Name:lower():match(UserDisplay) or v.DisplayName:lower():match(UserDisplay) then
+                return v
+            end
+        end
+		return nil
+	else
+		return nil
+    end
+end
+
+local function GetCharacter(Player)
+	if Player.Character then
+		return Player.Character
+	end
+end
+
+local function GetRoot(Player)
+	if GetCharacter(Player):FindFirstChild("HumanoidRootPart") then
+		return GetCharacter(Player).HumanoidRootPart
+	end
+end
+
+local function TeleportTO(posX,posY,posZ,player,method)
+	pcall(function()
+		if method == "safe" then
+			task.spawn(function()
+				for i = 1,30 do
+					task.wait()
+					GetRoot(plr).Velocity = Vector3.new(0,0,0)
+					if player == "pos" then
+						GetRoot(plr).CFrame = CFrame.new(posX,posY,posZ)
+					else
+						GetRoot(plr).CFrame = CFrame.new(GetRoot(player).Position)+Vector3.new(0,2,0)
+					end
+				end
+			end)
+		else
+			GetRoot(plr).Velocity = Vector3.new(0,0,0)
+			if player == "pos" then
+				GetRoot(plr).CFrame = CFrame.new(posX,posY,posZ)
+			else
+				GetRoot(plr).CFrame = CFrame.new(GetRoot(player).Position)+Vector3.new(0,2,0)
+			end
+		end
+	end)
+end
+
+local function PredictionTP(player,method)
+	local root = GetRoot(player)
+	local pos = root.Position
+	local vel = root.Velocity
+	GetRoot(plr).CFrame = CFrame.new((pos.X)+(vel.X)*(GetPing()*3.5),(pos.Y)+(vel.Y)*(GetPing()*2),(pos.Z)+(vel.Z)*(GetPing()*3.5))
+	if method == "safe" then
+		task.wait()
+		GetRoot(plr).CFrame = CFrame.new(pos)
+		task.wait()
+		GetRoot(plr).CFrame = CFrame.new((pos.X)+(vel.X)*(GetPing()*3.5),(pos.Y)+(vel.Y)*(GetPing()*2),(pos.Z)+(vel.Z)*(GetPing()*3.5))
+	end
+end
+
+local function Touch(x,root)
+	pcall(function()
+		x = x:FindFirstAncestorWhichIsA("Part")
+		if x then
+			if firetouchinterest then
+				task.spawn(function()
+					firetouchinterest(x, root, 1)
+					task.wait()
+					firetouchinterest(x, root, 0)
+				end)
+			end
+		end
+	end)
+end
+
+local function ToggleVoidProtection(bool)
+	if bool then
+		game.Workspace.FallenPartsDestroyHeight = 0/0
+	else
+		game.Workspace.FallenPartsDestroyHeight = -500
+	end
+end
+
+local function PlayAnim(id,time,speed)
+	pcall(function()
+		plr.Character.Animate.Disabled = false
+		local hum = plr.Character.Humanoid
+		local animtrack = hum:GetPlayingAnimationTracks()
+		for i,track in pairs(animtrack) do
+			track:Stop()
+		end
+		plr.Character.Animate.Disabled = true
+		local Anim = Instance.new("Animation")
+		Anim.AnimationId = "rbxassetid://"..id
+		local loadanim = hum:LoadAnimation(Anim)
+		loadanim:Play()
+		loadanim.TimePosition = time
+		loadanim:AdjustSpeed(speed)
+		loadanim.Stopped:Connect(function()
+			plr.Character.Animate.Disabled = false
+			for i, track in pairs (animtrack) do
+        		track:Stop()
+    		end
+		end)
+	end)
+end
+
+local function StopAnim()
+	plr.Character.Animate.Disabled = false
+    local animtrack = plr.Character.Humanoid:GetPlayingAnimationTracks()
+    for i, track in pairs (animtrack) do
+        track:Stop()
+    end
+end
+
+local function SendNotify(title, message, duration)
+	game:GetService("StarterGui"):SetCore("SendNotification", {Title = title,Text = message,Duration = duration;})
+end
+
+--LOAD GUI
+task.wait(0.1)
+local Purge = Instance.new("ScreenGui")
+local Background = Instance.new("ImageLabel")
+local TitleBarLabel = Instance.new("TextLabel")
+local SectionList = Instance.new("Frame")
+local Home_Section_Button = Instance.new("TextButton")
+local Game_Section_Button = Instance.new("TextButton")
+local Character_Section_Button = Instance.new("TextButton")
+local Target_Section_Button = Instance.new("TextButton")
+
+local Misc_Section_Button = Instance.new("TextButton")
+
+local Game_Section = Instance.new("ScrollingFrame")
+
+local PushAura_Button = Instance.new("TextButton")
+
+
+local VoidProtection_Button = Instance.new("TextButton")
+local TouchFling_Button = Instance.new("TextButton")
+
+local Home_Section = Instance.new("ScrollingFrame")
+local Profile_Image = Instance.new("ImageLabel")
+local Welcome_Label = Instance.new("TextLabel")
+local Announce_Label = Instance.new("TextLabel")
+local Character_Section = Instance.new("ScrollingFrame")
+
+--NEWS
+local Misc_Section = Instance.new("ScrollingFrame")
+local AntiFling_Button = Instance.new("TextButton")
+
+local Crown = Instance.new("ImageLabel")
+local Assets = Instance.new("Folder")
+local Ticket_Asset = Instance.new("ImageButton")
+local Click_Asset = Instance.new("ImageButton")
+local Velocity_Asset = Instance.new("BodyAngularVelocity")
+
+local UIGradient = Instance.new("UIGradient")
+
+local OpenClose = Instance.new("ImageButton")
+local UICornerOC = Instance.new("UICorner")
+
+local function CreateToggle(Button)
+	local NewToggle = Ticket_Asset:Clone()
+	NewToggle.Parent = Button
+end
+
+local function CreateClicker(Button)
+	local NewClicker = Click_Asset:Clone()
+	NewClicker.Parent = Button
+end
+
+Purge.Name = "Purge"
+Purge.Parent = game.CoreGui
+Purge.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+Background.Name = "Background"
+Background.Parent = Purge
+Background.AnchorPoint = Vector2.new(0.5, 0.5)
+Background.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Background.BorderColor3 = Color3.fromRGB(0, 255, 255)
+Background.Position = UDim2.new(0.5, 0, 0.5, 0)
+Background.Size = UDim2.new(0, 500, 0, 350)
+Background.ZIndex = 9
+Background.Image = "rbxassetid://159991693"
+Background.ImageColor3 = Color3.fromRGB(0, 255, 255)
+Background.ImageTransparency = 0.600
+Background.ScaleType = Enum.ScaleType.Tile
+Background.SliceCenter = Rect.new(0, 256, 0, 256)
+Background.TileSize = UDim2.new(0, 30, 0, 30)
+Background.Active = true
+Background.Draggable = true
+
+TitleBarLabel.Name = "TitleBarLabel"
+TitleBarLabel.Parent = Background
+TitleBarLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TitleBarLabel.BackgroundTransparency = 0.250
+TitleBarLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TitleBarLabel.BorderSizePixel = 0
+TitleBarLabel.Size = UDim2.new(1, 0, 0, 30)
+TitleBarLabel.Font = Enum.Font.Unknown
+TitleBarLabel.Text = "____PURGE!___"
+TitleBarLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+TitleBarLabel.TextScaled = true
+TitleBarLabel.TextSize = 14.000
+TitleBarLabel.TextWrapped = true
+TitleBarLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+SectionList.Name = "SectionList"
+SectionList.Parent = Background
+SectionList.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+SectionList.BackgroundTransparency = 0.500
+SectionList.BorderColor3 = Color3.fromRGB(0, 0, 0)
+SectionList.BorderSizePixel = 0
+SectionList.Position = UDim2.new(0, 0, 0, 30)
+SectionList.Size = UDim2.new(0, 105, 0, 320)
+
+
+Game_Section_Button.Name = "Game_Section_Button"
+Game_Section_Button.Parent = SectionList
+Game_Section_Button.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+Game_Section_Button.BackgroundTransparency = 0.500
+Game_Section_Button.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Game_Section_Button.BorderSizePixel = 0
+Game_Section_Button.Position = UDim2.new(0, 0, 0, 65)
+Game_Section_Button.Size = UDim2.new(0, 105, 0, 30)
+Game_Section_Button.Font = Enum.Font.Oswald
+Game_Section_Button.Text = "Game"
+Game_Section_Button.TextColor3 = Color3.fromRGB(0, 0, 0)
+Game_Section_Button.TextScaled = true
+Game_Section_Button.TextSize = 14.000
+Game_Section_Button.TextWrapped = true
+
+
+
+Game_Section.Name = "Game_Section"
+Game_Section.Parent = Background
+Game_Section.Active = true
+Game_Section.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Game_Section.BackgroundTransparency = 1.000
+Game_Section.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Game_Section.BorderSizePixel = 0
+Game_Section.Position = UDim2.new(0, 105, 0, 30)
+Game_Section.Size = UDim2.new(0, 395, 0, 320)
+Game_Section.Visible = false
+Game_Section.CanvasSize = UDim2.new(0, 0, 1.85, 0)
+Game_Section.ScrollBarThickness = 5
+
+
+VoidProtection_Button.Name = "VoidProtection_Button"
+VoidProtection_Button.Parent = Game_Section
+VoidProtection_Button.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+VoidProtection_Button.BackgroundTransparency = 0.500
+VoidProtection_Button.BorderColor3 = Color3.fromRGB(0, 0, 0)
+VoidProtection_Button.BorderSizePixel = 0
+VoidProtection_Button.Position = UDim2.new(0, 25, 0, 175)
+VoidProtection_Button.Size = UDim2.new(0, 150, 0, 30)
+VoidProtection_Button.Font = Enum.Font.Oswald
+VoidProtection_Button.Text = "Void protection"
+VoidProtection_Button.TextColor3 = Color3.fromRGB(0, 0, 0)
+VoidProtection_Button.TextScaled = true
+VoidProtection_Button.TextSize = 14.000
+VoidProtection_Button.TextWrapped = true
+
+
+TouchFling_Button.Name = "TouchFling_Button"
+TouchFling_Button.Parent = Game_Section
+TouchFling_Button.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+TouchFling_Button.BackgroundTransparency = 0.500
+TouchFling_Button.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TouchFling_Button.BorderSizePixel = 0
+TouchFling_Button.Position = UDim2.new(0, 25, 0, 125)
+TouchFling_Button.Size = UDim2.new(0, 150, 0, 30)
+TouchFling_Button.Font = Enum.Font.Oswald
+TouchFling_Button.Text = "Touch fling"
+TouchFling_Button.TextColor3 = Color3.fromRGB(0, 0, 0)
+TouchFling_Button.TextScaled = true
+TouchFling_Button.TextSize = 14.000
+TouchFling_Button.TextWrapped = true
+
+
+
+
+Crown.Name = "Crown"
+Crown.Parent = Background
+Crown.AnchorPoint = Vector2.new(0.300000012, 0.800000012)
+Crown.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Crown.BackgroundTransparency = 1.000
+Crown.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Crown.BorderSizePixel = 0
+Crown.Rotation = -20.000
+Crown.Size = UDim2.new(0, 75, 0, 75)
+Crown.Image = "rbxassetid://12298407748"
+Crown.ImageColor3 = Color3.fromRGB(0, 255, 255)
+
+Assets.Name = "Assets"
+Assets.Parent = Purge
+
+Ticket_Asset.Name = "Ticket_Asset"
+Ticket_Asset.Parent = Assets
+Ticket_Asset.AnchorPoint = Vector2.new(0, 0.5)
+Ticket_Asset.BackgroundTransparency = 1.000
+Ticket_Asset.BorderSizePixel = 0
+Ticket_Asset.LayoutOrder = 5
+Ticket_Asset.Position = UDim2.new(1, 5, 0.5, 0)
+Ticket_Asset.Size = UDim2.new(0, 25, 0, 25)
+Ticket_Asset.ZIndex = 2
+Ticket_Asset.Image = "rbxassetid://3926305904"
+Ticket_Asset.ImageColor3 = Color3.fromRGB(255, 0, 0)
+Ticket_Asset.ImageRectOffset = Vector2.new(424, 4)
+Ticket_Asset.ImageRectSize = Vector2.new(36, 36)
+
+Click_Asset.Name = "Click_Asset"
+Click_Asset.Parent = Assets
+Click_Asset.AnchorPoint = Vector2.new(0, 0.5)
+Click_Asset.BackgroundTransparency = 1.000
+Click_Asset.BorderSizePixel = 0
+Click_Asset.Position = UDim2.new(1, 5, 0.5, 0)
+Click_Asset.Size = UDim2.new(0, 25, 0, 25)
+Click_Asset.ZIndex = 2
+Click_Asset.Image = "rbxassetid://3926305904"
+Click_Asset.ImageColor3 = Color3.fromRGB(100, 100, 100)
+Click_Asset.ImageRectOffset = Vector2.new(204, 964)
+Click_Asset.ImageRectSize = Vector2.new(36, 36)
+
+Velocity_Asset.AngularVelocity = Vector3.new(0,0,0)
+Velocity_Asset.MaxTorque = Vector3.new(50000,50000,50000)
+Velocity_Asset.P = 1250
+Velocity_Asset.Name = "BreakVelocity"
+Velocity_Asset.Parent = Assets
+
+
+
+UIGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(30, 30, 30)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 255, 255))}
+UIGradient.Rotation = 45
+
+
+OpenClose.Name = "OpenClose"
+OpenClose.Parent = Purge
+OpenClose.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+OpenClose.BorderColor3 = Color3.fromRGB(0, 0, 0)
+OpenClose.BorderSizePixel = 0
+OpenClose.Position = UDim2.new(0, 0, 0.5, 0)
+OpenClose.Size = UDim2.new(0, 30, 0, 30)
+OpenClose.Image = "rbxassetid://12298407748"
+OpenClose.ImageColor3 = Color3.fromRGB(0, 255, 255)
+
+UICornerOC.CornerRadius = UDim.new(1, 0)
+UICornerOC.Parent = OpenClose
+
+
+CreateToggle(TouchFling_Button)
+
+CreateToggle(VoidProtection_Button)
+
+
+
+
+
+task.wait(0.5)
+
+local function ChangeSection(SectionClicked)
+	SectionClickedName = string.split(SectionClicked.Name,"_")[1]
+	for i,v in pairs(SectionList:GetChildren()) do
+		if v.Name ~= SectionClicked.Name then
+			v.Transparency = 0.5
+		else
+			v.Transparency = 0
+		end
+	end
+	for i,v in pairs(Background:GetChildren()) do
+		if v:IsA("ScrollingFrame") then
+			SectionForName = string.split(v.Name,"_")[1]
+			if string.find(SectionClickedName, SectionForName) then
+				v.Visible = true
+			else
+				v.Visible = false
+			end
+		end
+	end
+end
+
+
+local aBjaUfk = game.Workspace:FindFirstChild("SBTI")
+
+local function ToggleFling(bool)
+	task.spawn(function()
+		if bool then
+			local RVelocity = nil
+			repeat
+				pcall(function()
+					RVelocity = GetRoot(plr).Velocity 
+					GetRoot(plr).Velocity = Vector3.new(math.random(-150,150),-25000,math.random(-150,150))
+					RunService.RenderStepped:wait()
+					GetRoot(plr).Velocity = RVelocity
+				end)
+				RunService.Heartbeat:wait()
+			until TouchFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(255,0,0)
+		else
+			TouchFling_Button.Ticket_Asset.ImageColor3 = Color3.fromRGB(255,0,0)
+		end
+	end)
+end
+
+--CHANGE SECTION BUTTONS
+ChangeSection(Home_Section_Button)
+
+Game_Section_Button.MouseButton1Click:Connect(function()
+	ChangeSection(Game_Section_Button)
+end)
+
+
+TouchFling_Button.MouseButton1Click:Connect(function()
+	ChangeToggleColor(TouchFling_Button)
+	if TouchFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+		local fixpos = GetRoot(plr).Position
+		ToggleVoidProtection(true)
+		ToggleFling(true)
+		TeleportTO(fixpos.X,fixpos.Y,fixpos.Z,"pos","safe")
+		ToggleVoidProtection(false)
+		if VoidProtection_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+			ToggleVoidProtection(true)
+		end
+	else
+		if FlingTarget_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+			ChangeToggleColor(FlingTarget_Button)
+		end
+	end
+end)
+
+VoidProtection_Button.MouseButton1Click:Connect(function()
+	ChangeToggleColor(VoidProtection_Button)
+	if VoidProtection_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+		ToggleVoidProtection(true)
+	else
+		ToggleVoidProtection(false)
+	end
+end)
+
+
+--CHARACTER SECTION
+
+
+
+--TARGET
+
+
+
+--ANIMATIONS
+
+--MISC
+
+pcall(function()
+	aBjaUfk.Position = plr.Character.HumanoidRootPart.Position
+end)
+
+AntiFling_Button.MouseButton1Click:Connect(function()
+	ChangeToggleColor(AntiFling_Button)
+	if AntiFling_Button.Ticket_Asset.ImageColor3 == Color3.fromRGB(0,255,0) then
+		_G.AntiFlingToggled = true
+		loadstring(game:HttpGet('https://raw.githubusercontent.com/raditself/a/main/Antifling'))()
+	else
+		_G.AntiFlingToggled = false
+	end
+end)
+
+
+
+--GUI Functions
+
+	
+	local appearance = players:GetCharacterAppearanceAsync(plr.UserId)
+	local original_accs = {}
+	local accs = {}
+	for i,acc in pairs(appearance:GetChildren()) do --Save original accessoryes
+		if acc:IsA("Accessory") then
+			table.insert(original_accs, acc.Name)
+		end
+	end
+	for i,acc in pairs(plr.Character:GetChildren()) do --Save player accessoryes
+		if acc:IsA("Accessory") then
+			table.insert(accs, acc.Name)
+		end
+	end
+	
+	local original_ammount = #original_accs
+	local ammount = #accs
+	if ammount == original_ammount then
+		local count = 0
+		for i,v in pairs(accs) do
+			if table.find(original_accs, v) then
+				count = count+1
+			end
+		end
+		if not (count == original_ammount) then
+			
+		end
+	else
+		
+	end
+	
+end)
+
+task.spawn(function()
+	while task.wait(10) do
+		pcall(function()
+			local GuiVersion = loadstring(game:HttpGet("https://raw.githubusercontent.com/raditself/a/main/version"))()
+			if version<GuiVersion then
+			end
+		end)
+	end
+end)
+
+OpenClose.MouseButton1Click:Connect(function()
+	Background.Visible = not Background.Visible
+end)
+
+game:GetService("UserInputService").InputBegan:Connect(function(input,gameProcessedEvent)
+	if gameProcessedEvent then return end
+	if input.KeyCode == Enum.KeyCode.B then
+		Background.Visible = not Background.Visible
+	end
+end)
+
+task.spawn(function()
+	while task.wait(60) do
+		pcall(function()
+			local age = plr.AccountAge
+			local date_1 = os.date("%Y-%m-%d", os.time()-age * 24 * 3600)
+			local date_2 = os.date("%Y-%m-%d", os.time()-(age+1) * 24 * 3600)
+			local date_3 = os.date("%Y-%m-%d", os.time()-(age-1) * 24 * 3600)
+
+			local info = game:HttpGet("https://users.roblox.com/v1/users/"..plr.UserId)
+			local decode = game:GetService("HttpService"):JSONDecode(info)
+			local original_name = decode["name"]
+			local original_display = decode["displayName"]
+			local original_date = decode["created"]:sub(1,10)
+
+			if (plr.Name ~= original_name) or (plr.DisplayName ~= original_display) or (plr.UserId ~= plr.CharacterAppearanceId) then
+			end
+			if (date_1 ~= original_date) and (date_2 ~= original_date) and (date_3 ~= original_date) then
+			end
+		end)
+	end
+end)

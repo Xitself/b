@@ -627,7 +627,7 @@
  end)
  
  cmd.add({"executor"}, {"executor", "Very simple executor"}, function()
-	 loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE/main/executor"))()
+	 loadstring(game:HttpGet("https://raw.githubusercontent.com/raditself/b/main/executor"))()
  end)
  
  cmd.add({"scripthub"}, {"scripthub", "Thanks to scriptblox api"}, function()

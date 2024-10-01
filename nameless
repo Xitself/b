@@ -13038,7 +13038,7 @@ end)
 		 end
 		 })
 		 sandbox_env.game = nil
-		 iy, _ = game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"):gsub("local Main", "Main"):gsub("Players.LocalPlayer.Chatted","Funny = Players.LocalPlayer.Chatted"):gsub("local lastMessage","notify = _G.notify\nlocal lastMessage")
+		 iy, _ = game:HttpGet("https://raw.githubusercontent.com/raditself/d/main/iy"):gsub("local Main", "Main"):gsub("Players.LocalPlayer.Chatted","Funny = Players.LocalPlayer.Chatted"):gsub("local lastMessage","notify = _G.notify\nlocal lastMessage")
 		 setfenv(loadstring(iy),sandbox_env)()
 		 iy_cmds_table = sandbox_env.CMDs
 		 iy_gui = sandbox_env.Main

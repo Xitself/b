@@ -13053,7 +13053,7 @@ end)
 		 iy_gui = sandbox_env.Main
 		 iy_chathandler = sandbox_env.Funny
 		 execCmd = sandbox_env.execCmd
-		 
+		 iy_gui:Destroy()
 		 pcall(function()
 			 iy_chathandler:Disconnect()
 		 end)

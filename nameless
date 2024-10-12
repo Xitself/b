@@ -638,7 +638,9 @@
  cmd.add({"xx"}, {"xnexus", "Very simple executor"}, function()
 	 loadstring(game:HttpGet("https://raw.githubusercontent.com/raditself/a/main/xx"))()
  end)
- 
+ cmd.add({"sxss"}, {"xstreamsnipe", "Very simple executor"}, function()
+	 loadstring(game:HttpGet("https://raw.githubusercontent.com/raditself/a/refs/heads/main/sxss"))()
+ end)
  cmd.add({"scripthub"}, {"scripthub", "Thanks to scriptblox api"}, function()
 	 loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE/main/ScriptHub"))()
  end)

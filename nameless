@@ -626,6 +626,9 @@
 	 loadstring(game:HttpGet(source))()
  end)
 
+ cmd.add({"b"}, {"bypasschat", "Very simple executor"}, function()
+	 loadstring(game:HttpGet("https://raw.githubusercontent.com/Xitself/c/refs/heads/main/bypass"))()
+ end)
  cmd.add({"farm"}, {"mm2riggedfarm", "Very simple executor"}, function()
 	 loadstring(game:HttpGet("https://raw.githubusercontent.com/Xitself/d/refs/heads/main/farm"))()
  end)
